@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "Console.csproj", "{F7CE8CC8-2BBE-4D67-A73E-D6FC43FA725B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SWFEngine", "..\AWSEngine\SWFEngine.csproj", "{A0CAED47-6434-4153-A025-21CCF760D220}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventEngine", "..\EventEngine\EventEngine.csproj", "{D6672881-1AEE-4B6C-8650-6895EA0DB7F3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F7CE8CC8-2BBE-4D67-A73E-D6FC43FA725B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7CE8CC8-2BBE-4D67-A73E-D6FC43FA725B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7CE8CC8-2BBE-4D67-A73E-D6FC43FA725B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7CE8CC8-2BBE-4D67-A73E-D6FC43FA725B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0CAED47-6434-4153-A025-21CCF760D220}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0CAED47-6434-4153-A025-21CCF760D220}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0CAED47-6434-4153-A025-21CCF760D220}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0CAED47-6434-4153-A025-21CCF760D220}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6672881-1AEE-4B6C-8650-6895EA0DB7F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6672881-1AEE-4B6C-8650-6895EA0DB7F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6672881-1AEE-4B6C-8650-6895EA0DB7F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6672881-1AEE-4B6C-8650-6895EA0DB7F3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
