@@ -1,0 +1,298 @@
+<!DOCTYPE html />
+
+<html>
+<head>
+	<title>SWFEngine.cs</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link href="nocco.css" rel="stylesheet" media="all" type="text/css" />
+	<script src="prettify.js" type="text/javascript"></script>
+</head>
+<body onload="prettyPrint()">
+	<div id="container">
+		<div id="background"></div>
+			<div id="jump_to">
+				Jump To &hellip;
+				<div id="jump_wrapper">
+					<div id="jump_page">
+							<a class="source" href="historyiterator.html">
+								HistoryIterator.cs
+							</a>
+							<a class="source" href="providers.html">
+								Providers.cs
+							</a>
+							<a class="source" href="swfengine.html">
+								SWFEngine.cs
+							</a>
+							<a class="source" href="properties/assemblyinfo.html">
+								Properties\AssemblyInfo.cs
+							</a>
+					</div>
+				</div>
+			</div>
+		<table cellpadding="0" cellspacing="0">
+			<thead>
+				<tr>
+					<th class="docs">
+						<h1>SWFEngine.cs</h1>
+					</th>
+					<th class="code"></th>
+				</tr>
+			</thead>
+			<tbody>
+					<tr id="section_1">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_1">&#182;</a>
+							</div>
+							
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using System.Collections.ObjectModel;
+using System.Web.Script.Serialization;
+using Amazon;
+using Amazon.Runtime;
+using Amazon.SimpleWorkflow;
+using Amazon.SimpleWorkflow.Model;
+
+namespace SWFEngine
+{
+    #region &quot;ActivityState&quot;
+    
+    public class ActivityState
+    {
+        public string Key { get; set; }
+        public string Value { get; set; }
+    }
+
+    public class ActivityStateCollection : KeyedCollection&lt;string, ActivityState&gt;
+    {
+        protected override string GetKeyForItem(ActivityState item)
+        {
+            return item.Key;
+        }
+    }
+    
+    #endregion
+    
+    #region &quot;SWFBase&quot;
+    public abstract class SWFBase&lt;T,U&gt; 
+    {
+        private IAmazonSimpleWorkflow client;
+        private CancellationToken cancelToken;
+        Task _task;
+
+        private const int SLEEPTIMER = 2000;
+
+        protected IAmazonSimpleWorkflow Client
+        {
+            get
+            {
+                if (client == null)
+                {                    
+                    client = AWSClientFactory.CreateAmazonSimpleWorkflowClient();
+                }
+
+                return client;
+            }
+        }
+
+        protected J Deserialize&lt;J&gt;(string json)
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            J inputs = serializer.Deserialize&lt;J&gt;(json);
+            return inputs;
+        }
+
+        protected string Serialize&lt;J&gt;(J inputs)
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            StringBuilder builder = new StringBuilder();
+            serializer.Serialize(inputs, builder);
+            return builder.ToString();
+        }
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_2">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_2">&#182;</a>
+							</div>
+							<p>Returns the name of the domain which the workflow should be executing in </p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        public virtual string GetDomain() {return string.Empty;}
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_3">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_3">&#182;</a>
+							</div>
+							<p>Returns the Task List information </p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        public virtual TaskList GetTasks() { return null; }
+        protected virtual AWSCredentials GetCredentials() { return null; }
+        public abstract string GetTaskToken(T task);
+        public abstract U ProcessTask(T task);
+        public abstract void CompleteTask(T task, U param);
+
+        protected abstract T PollForTasks();
+
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_4">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_4">&#182;</a>
+							</div>
+							<p>public void Start(CancellationToken cancellationToken = default(CancellationToken))
+{
+   cancelToken = cancellationToken;
+   _task = Task.Run((Action) this.Poll);
+}</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_5">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_5">&#182;</a>
+							</div>
+							<p>Main Polling method which should be called by external app/code/host</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        public void Poll()
+        {
+            System.Console.WriteLine(this.GetType().ToString() +  &quot; Poll started&quot;);
+            while (!cancelToken.IsCancellationRequested) 
+            {
+                T task = PollForTasks();
+                if (!string.IsNullOrEmpty(GetTaskToken(task))) {
+                    U taskParams = ProcessTask(task);
+                    CompleteTask(task, taskParams);
+                }
+
+                Thread.Sleep(SLEEPTIMER);
+            }
+
+        }
+
+    }
+    #endregion
+
+    #region &quot;WorkerBase&quot;
+    public abstract class WorkerBase : SWFBase&lt;ActivityTask,ActivityState&gt;
+    {
+
+        public override string GetTaskToken(ActivityTask task)
+        {
+            return task.TaskToken;
+        }
+
+        protected override ActivityTask PollForTasks()
+        {
+        
+            PollForActivityTaskRequest request = new PollForActivityTaskRequest()
+            {
+                Domain = GetDomain(),
+                TaskList = GetTasks()
+            };
+            
+            PollForActivityTaskResponse response =  Client.PollForActivityTask(request);
+            return response.ActivityTask;
+        }
+
+        public override ActivityState ProcessTask(ActivityTask task)
+        {                        
+            ActivityState activityState = Do(task);
+            return activityState;                    
+        }
+        
+
+        public override void CompleteTask(ActivityTask task, ActivityState activityState)
+        {
+            RespondActivityTaskCompletedRequest request = new RespondActivityTaskCompletedRequest()
+            {
+                Result = this.Serialize&lt;ActivityState&gt;(activityState),
+                TaskToken = task.TaskToken
+            };
+
+            RespondActivityTaskCompletedResponse response = Client.RespondActivityTaskCompleted(request);
+
+        }
+
+        public abstract ActivityState Do(ActivityTask task);      
+    }
+    #endregion
+
+    #region &quot;DeciderBase&quot;
+    public abstract class DeciderBase : SWFBase&lt;DecisionTask,List&lt;Decision&gt;&gt;
+    {
+        public override string GetTaskToken(DecisionTask task)
+        {
+            return task.TaskToken;
+        }
+
+        protected override   DecisionTask  PollForTasks()
+        {
+            PollForDecisionTaskRequest request = new PollForDecisionTaskRequest()
+            {
+                Domain = GetDomain(),
+                TaskList = GetTasks()
+            };
+            PollForDecisionTaskResponse response = Client.PollForDecisionTask(request);
+            return response.DecisionTask;            
+        }
+
+        public override List&lt;Decision&gt; ProcessTask(DecisionTask task)
+        {
+            List&lt;Decision&gt; decisions = Decide(task);
+            return decisions;            
+        }
+
+        public override void CompleteTask(DecisionTask task, List&lt;Decision&gt; param)
+        {
+            RespondDecisionTaskCompletedRequest request = new RespondDecisionTaskCompletedRequest()
+            {
+                Decisions = param,
+                TaskToken = task.TaskToken
+            };
+
+            Client.RespondDecisionTaskCompleted(request);            
+        }
+
+        public abstract List&lt;Decision&gt; Decide(DecisionTask task);
+        
+    }
+    #endregion
+
+}
+   
+</code></pre>
+						</td>
+					</tr>
+			</tbody>
+		</table>
+	</div>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html />
+
+<html>
+<head>
+	<title>HistoryIterator.cs</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link href="nocco.css" rel="stylesheet" media="all" type="text/css" />
+	<script src="prettify.js" type="text/javascript"></script>
+</head>
+<body onload="prettyPrint()">
+	<div id="container">
+		<div id="background"></div>
+			<div id="jump_to">
+				Jump To &hellip;
+				<div id="jump_wrapper">
+					<div id="jump_page">
+							<a class="source" href="historyiterator.html">
+								HistoryIterator.cs
+							</a>
+							<a class="source" href="providers.html">
+								Providers.cs
+							</a>
+							<a class="source" href="swfengine.html">
+								SWFEngine.cs
+							</a>
+							<a class="source" href="properties/assemblyinfo.html">
+								Properties\AssemblyInfo.cs
+							</a>
+					</div>
+				</div>
+			</div>
+		<table cellpadding="0" cellspacing="0">
+			<thead>
+				<tr>
+					<th class="docs">
+						<h1>HistoryIterator.cs</h1>
+					</th>
+					<th class="code"></th>
+				</tr>
+			</thead>
+			<tbody>
+					<tr id="section_1">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_1">&#182;</a>
+							</div>
+							
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Amazon.SimpleWorkflow;
+using Amazon.SimpleWorkflow.Model;
+using SWFEngine.Providers;
+
+namespace SWFEngine
+{
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_2">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_2">&#182;</a>
+							</div>
+							<p>Implements an IEnumerable for events in the execution history</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>    class HistoryIterator : IEnumerable&lt;HistoryEvent&gt;
+    {
+        DecisionTask lastResponse;
+        IAmazonSimpleWorkflow swfClient;
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_3">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_3">&#182;</a>
+							</div>
+							<p>Create a new HistoryIterator to enumerate the history events in the DecisionTask passed in.</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        public HistoryIterator(IAmazonSimpleWorkflow client, DecisionTask response)
+        {
+            this.swfClient = client;
+            this.lastResponse = response;
+        }
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_4">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_4">&#182;</a>
+							</div>
+							<p>Creates an enumerator for the history events. Automatically retrieves pages of
+history from SWF.</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        public IEnumerator&lt;HistoryEvent&gt; GetEnumerator()
+        {            
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_5">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_5">&#182;</a>
+							</div>
+							<p>Yield the history events in the current page of events</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>            foreach (HistoryEvent e in lastResponse.Events) 
+            {
+                if (e.EventId &gt; this.lastResponse.PreviousStartedEventId)
+                    yield return e;
+            }
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_6">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_6">&#182;</a>
+							</div>
+							<p>If the NextPageToken is not null, get the next page of history events </p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>            while (!String.IsNullOrEmpty(lastResponse.NextPageToken))
+            {
+                List&lt;HistoryEvent&gt; events = GetNextPage();
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_7">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_7">&#182;</a>
+							</div>
+							<p>Start yielding results from the next page of events</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>                foreach (HistoryEvent e in events)
+                {
+                    yield return e;
+                }
+            }
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_8">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_8">&#182;</a>
+							</div>
+							<p>Helper method to call PollForDecisionTask with the NextPageToken
+to retrieve the next page of history events.</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>        List&lt;HistoryEvent&gt; GetNextPage()
+        {
+            PollForDecisionTaskRequest request = new PollForDecisionTaskRequest()
+            {
+                Domain = Constants.Domain,
+                NextPageToken = lastResponse.NextPageToken,
+                TaskList = new TaskList()
+                {
+                    Name = Constants.TaskListName
+                }
+            };
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_9">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_9">&#182;</a>
+							</div>
+							<p>AmazonSimpleWorkflow client does exponential back off and retries by default.
+We want additional retries for robustness in case of transient failures like throttling.</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>            int retryCount = 10;
+            int currentTry = 1;
+            bool pollFailed;
+            do
+            {
+                pollFailed = false;
+                try
+                {
+                    this.lastResponse = swfClient.PollForDecisionTask(request).DecisionTask;
+                }
+                catch (Exception ex)
+                {
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_10">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_10">&#182;</a>
+							</div>
+							<p>Swallow exception and keep polling
+Console.Error.WriteLine("Poll request failed with exception :" + ex);</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>                    pollFailed = true;
+                }
+            }
+            while (pollFailed &amp;&amp; ++currentTry &lt;= retryCount);
+            return this.lastResponse.Events;
+        }
+    }
+}
+</code></pre>
+						</td>
+					</tr>
+			</tbody>
+		</table>
+	</div>
+</body>
+</html>

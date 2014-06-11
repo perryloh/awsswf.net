@@ -1,0 +1,276 @@
+<!DOCTYPE html />
+
+<html>
+<head>
+	<title>Providers.cs</title>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+	<link href="nocco.css" rel="stylesheet" media="all" type="text/css" />
+	<script src="prettify.js" type="text/javascript"></script>
+</head>
+<body onload="prettyPrint()">
+	<div id="container">
+		<div id="background"></div>
+			<div id="jump_to">
+				Jump To &hellip;
+				<div id="jump_wrapper">
+					<div id="jump_page">
+							<a class="source" href="historyiterator.html">
+								HistoryIterator.cs
+							</a>
+							<a class="source" href="providers.html">
+								Providers.cs
+							</a>
+							<a class="source" href="swfengine.html">
+								SWFEngine.cs
+							</a>
+							<a class="source" href="properties/assemblyinfo.html">
+								Properties\AssemblyInfo.cs
+							</a>
+					</div>
+				</div>
+			</div>
+		<table cellpadding="0" cellspacing="0">
+			<thead>
+				<tr>
+					<th class="docs">
+						<h1>Providers.cs</h1>
+					</th>
+					<th class="code"></th>
+				</tr>
+			</thead>
+			<tbody>
+					<tr id="section_1">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_1">&#182;</a>
+							</div>
+							
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.ObjectModel;
+using System.Web.Script.Serialization;
+using Amazon;
+using Amazon.Runtime;
+using Amazon.SimpleWorkflow;
+using Amazon.SimpleWorkflow.Model;
+using SWFEngine;
+
+namespace SWFEngine.Providers
+{
+
+    public static class Constants
+    {
+        public static string ActivityIdPrefix = &quot;StringReverse&quot;;
+        public static string TaskListName = &quot;StringReverseTaskList&quot;;
+        public static string Domain = &quot;StringReverse&quot;;
+        public static string ActivityName = &quot;String Reverse&quot;;
+        public static string ActivityVersion = &quot;3.0&quot;;
+        public static string ActivityWorkflow = &quot;StringReverseWorkflow2&quot;;
+        public static string ActivityWorkflowVersion = &quot;2.0&quot;;
+    }
+
+    public class SWFCredentials : AWSCredentials
+    {
+        public override ImmutableCredentials GetCredentials()
+        {
+            return new ImmutableCredentials(&quot;&quot;, &quot;&quot;, &quot;&quot;);
+        }
+    }
+
+    public class StringReverseActivityWorker : WorkerBase
+    {
+        public override ActivityState Do(Amazon.SimpleWorkflow.Model.ActivityTask task)
+        {            
+            
+            return new ActivityState() 
+            {                
+                Key = &quot;output&quot;,
+                Value = new string(task.Input.ToCharArray().Reverse().ToArray())
+            };            
+        }
+
+        public override TaskList GetTasks()
+        {
+            return new TaskList()
+            {
+                Name = Constants.TaskListName
+            };
+        }
+
+        public override string GetDomain()
+        {
+            return Constants.Domain;
+        }
+
+        protected override AWSCredentials GetCredentials()
+        {
+            return new SWFCredentials();
+        }
+
+    }
+
+    public class StringReverseDecider : DeciderBase
+    {
+        public override TaskList GetTasks()
+        {
+            return new TaskList()
+            {
+                Name = Constants.TaskListName
+            };
+        }
+
+        public override string GetDomain()
+        {
+            return Constants.Domain;
+        }
+
+        protected override AWSCredentials GetCredentials()
+        {
+            return new SWFCredentials();
+        }
+
+        public override List&lt;Decision&gt; Decide(DecisionTask task)
+        {
+            var decisions = new List&lt;Decision&gt;();
+            List&lt;ActivityState&gt; activityStates;
+            string startingInput;
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_2">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_2">&#182;</a>
+							</div>
+							<p>ProcessHistory(task, out startingInput, out activityStates);</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>
+            HistoryIterator iterator = new HistoryIterator(this.Client, task);
+            foreach (var evnt in iterator)
+            {
+                if (evnt.EventType == EventType.WorkflowExecutionStarted)
+                {
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_3">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_3">&#182;</a>
+							</div>
+							<p>startingInput = evnt.WorkflowExecutionStartedEventAttributes.Input;  //this.Deserialize<WorkFlowExecutionInput>(evnt.WorkflowExecutionStartedEventAttributes.Input);</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>
+                    decisions.Add(new Decision()
+                    {
+                        DecisionType = DecisionType.ScheduleActivityTask,
+                        ScheduleActivityTaskDecisionAttributes = new ScheduleActivityTaskDecisionAttributes()
+                        {
+                            ActivityType = new ActivityType()
+                            {
+                                Name = Constants.ActivityName,
+                                Version = Constants.ActivityVersion
+                            },
+                            ActivityId = Constants.ActivityIdPrefix + DateTime.Now.TimeOfDay,
+                            Input = evnt.WorkflowExecutionStartedEventAttributes.Input  
+                        }
+
+                    });
+
+                }
+                if (evnt.EventType == EventType.ActivityTaskCompleted)
+                {
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_4">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_4">&#182;</a>
+							</div>
+							<p>ActivityState state = this.Deserialize<ActivityState>(evnt.ActivityTaskCompletedEventAttributes.Result);
+activityStates.Add(state);</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>
+                    decisions.Add(new Decision()
+                    {
+                        DecisionType = DecisionType.CompleteWorkflowExecution,
+                        CompleteWorkflowExecutionDecisionAttributes = new CompleteWorkflowExecutionDecisionAttributes
+                        {
+                            Result = &quot;We are done&quot;
+                        }
+                    });
+                }
+            }
+
+
+            
+
+</code></pre>
+						</td>
+					</tr>
+					<tr id="section_5">
+						<td class="docs">
+							<div class="pilwrap">
+								<a class="pilcrow" href="#section_5">&#182;</a>
+							</div>
+							<p>if (decisions.Count == 0)
+{
+   decisions.Add(new Decision()
+   {
+       DecisionType = DecisionType.CompleteWorkflowExecution,
+       CompleteWorkflowExecutionDecisionAttributes = new CompleteWorkflowExecutionDecisionAttributes
+       {
+           Result = "We are done"
+       }
+   });
+}</p>
+
+						</td>
+						<td class="code">
+							<pre><code class='prettyprint'>
+            return decisions;
+        }
+
+        void ProcessHistory(DecisionTask task, out string startingInput, out List&lt;ActivityState&gt; activityStates)
+        {
+            startingInput = null;
+            activityStates = new List&lt;ActivityState&gt;();
+
+            HistoryIterator iterator = new HistoryIterator(this.Client, task);
+            foreach (var evnt in iterator)
+            {
+                if (evnt.EventType == EventType.WorkflowExecutionStarted)
+                {
+                    startingInput = evnt.WorkflowExecutionStartedEventAttributes.Input;  //this.Deserialize&lt;WorkFlowExecutionInput&gt;(evnt.WorkflowExecutionStartedEventAttributes.Input);
+                }
+                if (evnt.EventType == EventType.ActivityTaskCompleted)
+                {
+                    ActivityState state = this.Deserialize&lt;ActivityState&gt;(evnt.ActivityTaskCompletedEventAttributes.Result);
+                    activityStates.Add(state);
+                }
+            }
+
+        }
+
+    }
+}
+</code></pre>
+						</td>
+					</tr>
+			</tbody>
+		</table>
+	</div>
+</body>
+</html>
