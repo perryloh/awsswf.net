@@ -16,14 +16,14 @@ namespace EventEngine
 {
     public class Engine
     {
-        private const int SLEEPTIMER = 20000;
+        private const int SLEEPTIMER = 60000;
         private CancellationToken cancelToken;
         private List<EngineBase> providers;
 
         public void Run(CancellationToken cancelToken = default(CancellationToken))
         {
             InitEngine();
-            System.Console.WriteLine("Event engine running");
+            System.Console.WriteLine("Event Engine - All Systems Go -");
             while (!cancelToken.IsCancellationRequested) 
             {
 
@@ -39,7 +39,7 @@ namespace EventEngine
         private void InitEngine()
         {
             providers = new List<EngineBase>();
-            providers.Add(new GmailProvider());            
+            providers.Add(new SalesforceProvider());            
         }
     }
 
@@ -51,7 +51,7 @@ namespace EventEngine
         private const string Domain = "StringReverse";
         private const string ActivityWorkflow = "StringReverseWorkflow2";
         private const string ActivityWorkflowVersion = "2.0";
-        private IAmazonSimpleWorkflow swfClient = AWSClientFactory.CreateAmazonSimpleWorkflowClient();
+        private IAmazonSimpleWorkflow swfClient;// = AWSClientFactory.CreateAmazonSimpleWorkflowClient();
 
         public void StartWorkflow(string input)
         {
@@ -73,37 +73,6 @@ namespace EventEngine
 
     }
 
-    public class GmailProvider : EngineBase
-    {
-        private WebClient client;
-
-        public override void Run()
-        {
-            client = new WebClient();
-
-            NetworkCredential cred = new NetworkCredential("", "");
-            client.Credentials = cred;
-            
-            using (StreamReader sr = new StreamReader(client.OpenRead(@"https://mail.google.com/mail/feed/atom")))
-            {
-                var feedXml = XDocument.Parse(sr.ReadToEnd());
-                XNamespace ns = "http://purl.org/atom/ns#";
-
-                var items = from feed in feedXml.Element(ns + "feed").Elements(ns + "entry")
-                            select new
-                            {
-                                Subject = feed.Element(ns + "title").Value,
-                                Summary = feed.Element(ns + "summary").Value,                                
-                            };
-
-                foreach (var item in items)
-                {
-                    this.StartWorkflow(item.Subject);                    
-                }
-            };                
-        }
-    }
-
-
+    
 
 }

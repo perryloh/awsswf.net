@@ -68,7 +68,15 @@ namespace SWFEngine
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Returns the name of the domain which the workflow should be executing in 
+        /// </summary>
+        /// <returns></returns>
         public virtual string GetDomain() {return string.Empty;}
+        /// <summary>
+        /// Returns the Task List information 
+        /// </summary>
+        /// <returns></returns>
         public virtual TaskList GetTasks() { return null; }
         protected virtual AWSCredentials GetCredentials() { return null; }
         public abstract string GetTaskToken(T task);
@@ -84,6 +92,10 @@ namespace SWFEngine
         //    _task = Task.Run((Action) this.Poll);
         //}
 
+
+        /// <summary>
+        /// Main Polling method which should be called by external app/code/host
+        /// </summary>
         public void Poll()
         {
             System.Console.WriteLine(this.GetType().ToString() +  " Poll started");
